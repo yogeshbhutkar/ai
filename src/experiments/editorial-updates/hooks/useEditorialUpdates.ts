@@ -19,7 +19,7 @@ import { store as noticesStore } from '@wordpress/notices';
  */
 import {
 	flattenBlocks,
-	getBlockText,
+	getBlockHTML,
 	replaceBlockWithPlaceholder,
 } from '../../../utils/blocks';
 import {
@@ -319,7 +319,7 @@ export function useEditorialUpdates(): {
 				) {
 					return false;
 				}
-				const blockText = getBlockText( block );
+				const blockText = getBlockHTML( block );
 				return blockText.length > 0;
 			} );
 
@@ -357,7 +357,7 @@ export function useEditorialUpdates(): {
 						const existingNoteId = block.attributes.metadata
 							?.noteId as number;
 
-						const blockText = getBlockText( block );
+						const blockText = getBlockHTML( block );
 
 						// Collect notes logic
 						const existingNoteTexts: string[] = [];
