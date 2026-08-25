@@ -1,18 +1,11 @@
 /**
- * WordPress dependencies
- */
-import type { Block } from '@wordpress/blocks';
-
-/**
  * Internal dependencies
  */
-import { getBlockHTML } from '../../../utils/blocks';
 import { runAbility } from '../../../utils/run-ability';
 import type { AIContentTranslationData } from '../types';
 import {
 	TRANSLATION_LOADING_CLASSES,
 	TRANSLATION_MINIMUM_CONTENT_COUNT_DEFAULT,
-	TRANSLATION_SUPPORTED_BLOCK_TYPES,
 } from '../constants';
 
 /**
@@ -31,28 +24,6 @@ export const getSettings = (): AIContentTranslationData => {
 		languages: settings.languages ?? [],
 	};
 };
-
-/**
- * Get the translatable block if it is supported and has non-empty text content.
- *
- * @param block The block to check.
- * @return An object containing the clientId and content of the block, or null if the block is not translatable.
- */
-export function getTranslatableBlock( block: Block ) {
-	const content = getBlockHTML( block );
-
-	if (
-		TRANSLATION_SUPPORTED_BLOCK_TYPES.includes( block.name ) &&
-		content.trim().length > 0
-	) {
-		return {
-			clientId: block.clientId,
-			content,
-		};
-	}
-
-	return null;
-}
 
 /**
  * Toggle the loading class used to show the translation-in-progress state.

@@ -17,11 +17,18 @@ import { hasMinimumContent } from '../../../utils/character-count';
 import { getErrorMessage } from '../../../utils/errors';
 import {
 	getSettings,
-	getTranslatableBlock,
 	setTranslationLoadingClass,
 	translateContent,
 } from '../utils';
-import { TRANSLATION_BATCH_SIZE, TRANSLATION_NOTICE_ID } from '../constants';
+import {
+	TRANSLATION_BATCH_SIZE,
+	TRANSLATION_FIELD_SELECTOR,
+	TRANSLATION_NOTICE_ID,
+} from '../constants';
+import {
+	buildFieldPatch,
+	getEditableFields,
+} from '../../../utils/block-content';
 
 type UseContentTranslationReturn = {
 	isContentTooShort: boolean;
@@ -321,25 +328,25 @@ export function useContentTranslation(): UseContentTranslationReturn {
 
 		const allBlocks = select( blockEditorStore ).getBlocks();
 
-		const supportedBlocks = flattenBlocks( allBlocks )
-			.map( ( block ) => getTranslatableBlock( block ) )
-			.filter( ( block ) => block !== null );
+		const supportedFields = flattenBlocks( allBlocks ).flatMap( ( block ) =>
+			getEditableFields( block, TRANSLATION_FIELD_SELECTOR )
+		);
 
 		// A `specific` target restricts translation to matching client IDs;
 		// an `all` target considers every eligible block.
 		const targetedBlocks =
 			target.kind === 'specific'
-				? supportedBlocks.filter( ( block ) =>
-						target.clientIds.includes( block.clientId )
+				? supportedFields.filter( ( field ) =>
+						target.clientIds.includes( field.clientId )
 				  )
-				: supportedBlocks;
+				: supportedFields;
 
 		// The ability rejects content below the minimum length, so filter those
 		// blocks out up front rather than spending a request to be told no. The
 		// post-level gate measures the whole post, which can pass while short
 		// individual blocks (a "FAQ" heading, say) would not.
-		const translatableBlocks = targetedBlocks.filter( ( block ) =>
-			hasMinimumContent( block.content, minContentLength )
+		const translatableBlocks = targetedBlocks.filter( ( field ) =>
+			hasMinimumContent( field.value, minContentLength )
 		);
 
 		const skippedBlocksCount =
@@ -380,8 +387,8 @@ export function useContentTranslation(): UseContentTranslationReturn {
 			// translations from being applied, avoiding wasted tokens from discarding
 			// the whole batch.
 			const results = await Promise.allSettled(
-				batch.map( ( block ) =>
-					translateContent( block.content, languageCode, postId )
+				batch.map( ( field ) =>
+					translateContent( field.value, languageCode, postId )
 				)
 			);
 
@@ -408,10 +415,13 @@ export function useContentTranslation(): UseContentTranslationReturn {
 					return;
 				}
 
-				const { clientId } = batch[ index ];
-				blockEditorDispatch.updateBlockAttributes( clientId, {
-					content: result.value,
-				} );
+				const { clientId, blockName, fieldKey } = batch[ index ];
+				blockEditorDispatch.updateBlockAttributes(
+					clientId,
+					buildFieldPatch( blockName, {
+						[ fieldKey ]: result.value,
+					} )
+				);
 
 				translatedBlocksCount++;
 			} );

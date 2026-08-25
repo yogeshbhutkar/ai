@@ -1,4 +1,9 @@
 /**
+ * Internal dependencies
+ */
+import type { FieldSelector } from '../../utils/block-content';
+
+/**
  * A default minimum content length for enabling content translation.
  */
 export const TRANSLATION_MINIMUM_CONTENT_COUNT_DEFAULT = 5;
@@ -14,12 +19,11 @@ export const TRANSLATION_NOTICE_ID = 'ai_content_translation';
 export const TRANSLATION_BATCH_SIZE = 4;
 
 /**
- * Supported block types for content translation.
+ * Supported field roles for content translation.
  */
-export const TRANSLATION_SUPPORTED_BLOCK_TYPES = [
-	'core/paragraph',
-	'core/heading',
-];
+export const TRANSLATION_FIELD_SELECTOR: FieldSelector = {
+	roles: [ 'content', 'caption', 'citation', 'alt' ],
+};
 
 /**
  * Loading classes for the content translation process.
