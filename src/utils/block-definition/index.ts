@@ -3,7 +3,7 @@
  */
 import './definitions';
 
-export { registerBlockContent, isRegisteredBlock } from './registry';
+export { registerBlockDefinition, isRegisteredBlock } from './registry';
 export { getEditableFields, buildFieldPatch } from './fields';
 export type { FieldSelector } from './fields';
 export type {

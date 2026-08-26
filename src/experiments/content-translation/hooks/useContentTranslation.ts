@@ -28,7 +28,7 @@ import {
 import {
 	buildFieldPatch,
 	getEditableFields,
-} from '../../../utils/block-content';
+} from '../../../utils/block-definition';
 
 type UseContentTranslationReturn = {
 	isContentTooShort: boolean;

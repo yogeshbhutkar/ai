@@ -8,7 +8,7 @@ import type { BlockContentDefinition } from './types';
  *
  * @example
  * ```ts
- * registerBlockContent( {
+ * registerBlockDefinition( {
  * 	name: 'core/paragraph',
  * 	fields: [
  * 		{ key: 'content', role: 'content', format: 'html', label: __( 'Content', 'ai' ) },
@@ -23,7 +23,7 @@ const definitions = new Map< string, BlockContentDefinition >();
  *
  * @param definition - The block content definition to register.
  */
-export function registerBlockContent(
+export function registerBlockDefinition(
 	definition: BlockContentDefinition
 ): void {
 	definitions.set( definition.name, definition );

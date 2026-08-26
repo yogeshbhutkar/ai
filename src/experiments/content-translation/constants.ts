@@ -1,7 +1,7 @@
 /**
  * Internal dependencies
  */
-import type { FieldSelector } from '../../utils/block-content';
+import type { FieldSelector } from '../../utils/block-definition';
 
 /**
  * A default minimum content length for enabling content translation.
