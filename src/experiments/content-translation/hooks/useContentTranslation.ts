@@ -334,7 +334,7 @@ export function useContentTranslation(): UseContentTranslationReturn {
 
 		// A `specific` target restricts translation to matching client IDs;
 		// an `all` target considers every eligible block.
-		const targetedBlocks =
+		const targetedFields =
 			target.kind === 'specific'
 				? supportedFields.filter( ( field ) =>
 						target.clientIds.includes( field.clientId )
@@ -345,14 +345,14 @@ export function useContentTranslation(): UseContentTranslationReturn {
 		// blocks out up front rather than spending a request to be told no. The
 		// post-level gate measures the whole post, which can pass while short
 		// individual blocks (a "FAQ" heading, say) would not.
-		const translatableBlocks = targetedBlocks.filter( ( field ) =>
+		const translatableFields = targetedFields.filter( ( field ) =>
 			hasMinimumContent( field.value, minContentLength )
 		);
 
 		const skippedBlocksCount =
-			targetedBlocks.length - translatableBlocks.length;
+			targetedFields.length - translatableFields.length;
 
-		if ( translatableBlocks.length === 0 ) {
+		if ( translatableFields.length === 0 ) {
 			throw new Error(
 				skippedBlocksCount > 0
 					? sprintf(
@@ -367,18 +367,22 @@ export function useContentTranslation(): UseContentTranslationReturn {
 			);
 		}
 
-		setTotal( translatableBlocks.length );
+		const translatableBlockClientIds = new Set(
+			translatableFields.map( ( field ) => field.clientId )
+		);
+
+		setTotal( translatableBlockClientIds.size );
 
 		// Count the blocks that were translated and applied, and those that failed.
-		let translatedBlocksCount = 0;
+		const translatedBlockClientIds = new Set< string >();
 
 		// Process blocks in batches.
 		for (
 			let batchStart = 0;
-			batchStart < translatableBlocks.length;
+			batchStart < translatableFields.length;
 			batchStart += TRANSLATION_BATCH_SIZE
 		) {
-			const batch = translatableBlocks.slice(
+			const batch = translatableFields.slice(
 				batchStart,
 				batchStart + TRANSLATION_BATCH_SIZE
 			);
@@ -423,12 +427,11 @@ export function useContentTranslation(): UseContentTranslationReturn {
 					} )
 				);
 
-				translatedBlocksCount++;
+				translatedBlockClientIds.add( clientId );
 			} );
 
-			// Report blocks actually translated, not blocks attempted, so the
-			// progress label never claims work that failed.
-			setProgress( translatedBlocksCount );
+			// Report unique blocks with at least one successfully translated field.
+			setProgress( translatedBlockClientIds.size );
 		}
 
 		const failedBlocksCount = failedBlockClientIds.length;
