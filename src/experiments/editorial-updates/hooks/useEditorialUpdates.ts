@@ -21,6 +21,7 @@ import {
 	flattenBlocks,
 	getBlockText,
 	getPostContentBlockContext,
+	isBlockStale,
 	replaceBlockWithPlaceholder,
 	getEditableTextAttribute,
 } from '../../../utils/blocks';
@@ -183,6 +184,7 @@ export function useEditorialUpdates(): {
 			let refinedBlocksCount = 0;
 			let processedBlocksCount = 0;
 			let failedBlocksCount = 0;
+			let staleBlocksCount = 0;
 			let firstErrorMessage: string | null = null;
 			const notesToResolve: number[] = [];
 
@@ -236,6 +238,13 @@ export function useEditorialUpdates(): {
 									notes: existingNoteTexts,
 								}
 							);
+
+							// The block may have been removed or edited while its request was in flight.
+							// Skip it so the user's edits aren't overwritten.
+							if ( isBlockStale( block.clientId, blockText ) ) {
+								staleBlocksCount++;
+								return;
+							}
 
 							if (
 								refinedContent &&
@@ -300,6 +309,22 @@ export function useEditorialUpdates(): {
 
 				dispatch( coreStore ).invalidateResolutionForStoreSelector(
 					'getEntityRecords'
+				);
+			}
+
+			if ( staleBlocksCount > 0 ) {
+				dispatch( noticesStore ).createWarningNotice(
+					sprintf(
+						/* translators: %d: number of blocks removed, replaced, or edited in the editor while refining. */
+						_n(
+							'%d block was not refined because the editor changed while refining.',
+							'%d blocks were not refined because the editor changed while refining.',
+							staleBlocksCount,
+							'ai'
+						),
+						staleBlocksCount
+					),
+					{ type: 'snackbar' }
 				);
 			}
 
@@ -375,7 +400,7 @@ export function useEditorialUpdates(): {
 						actions: noticeActions,
 					}
 				);
-			} else {
+			} else if ( staleBlocksCount === 0 ) {
 				dispatch( noticesStore ).createNotice(
 					'info',
 					__(

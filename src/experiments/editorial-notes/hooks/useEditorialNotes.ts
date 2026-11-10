@@ -154,6 +154,7 @@ export function useEditorialNotes(): {
 
 			let totalSuggestions = 0;
 			let failedBlocks = 0;
+			let staleBlocks = 0;
 			let firstError: any = null;
 
 			// Process blocks in batches.
@@ -183,7 +184,11 @@ export function useEditorialNotes(): {
 
 				for ( const result of results ) {
 					if ( result.status === 'fulfilled' ) {
-						totalSuggestions += result.value;
+						if ( result.value === null ) {
+							staleBlocks++;
+						} else {
+							totalSuggestions += result.value;
+						}
 					} else {
 						failedBlocks++;
 						firstError = firstError ?? result.reason;
@@ -195,9 +200,9 @@ export function useEditorialNotes(): {
 				);
 			}
 
-			// "No new suggestions found." would be wrong when blocks failed.
+			// "No new suggestions found." would be wrong when blocks failed or were skipped.
 			setLastRunCount(
-				failedBlocks > 0 && totalSuggestions === 0
+				failedBlocks + staleBlocks > 0 && totalSuggestions === 0
 					? null
 					: totalSuggestions
 			);
@@ -239,6 +244,22 @@ export function useEditorialNotes(): {
 						id: NOTICE_ID,
 						isDismissible: true,
 					}
+				);
+			}
+
+			if ( staleBlocks > 0 ) {
+				dispatch( noticesStore ).createWarningNotice(
+					sprintf(
+						/* translators: %d: number of blocks removed, replaced, or edited in the editor while reviewing. */
+						_n(
+							'%d block was not reviewed because the editor changed while reviewing.',
+							'%d blocks were not reviewed because the editor changed while reviewing.',
+							staleBlocks,
+							'ai'
+						),
+						staleBlocks
+					),
+					{ type: 'snackbar' }
 				);
 			}
 		} catch ( error: any ) {
@@ -326,7 +347,15 @@ export function useEditorialBlock(): {
 				pendingNotes
 			);
 
-			if ( suggestionCount > 0 ) {
+			if ( suggestionCount === null ) {
+				dispatch( noticesStore ).createWarningNotice(
+					__(
+						'The block was not reviewed because the editor changed while reviewing.',
+						'ai'
+					),
+					{ type: 'snackbar' }
+				);
+			} else if ( suggestionCount > 0 ) {
 				dispatch( coreStore ).invalidateResolutionForStoreSelector(
 					'getEntityRecords'
 				);

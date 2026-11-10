@@ -224,6 +224,25 @@ export function getBlockHTML( block: BlockWithContent ): string {
 }
 
 /**
+ * Checks whether a block was removed or its text changed since `originalText` was captured.
+ *
+ * @param {string} clientId     The client ID of the block to check.
+ * @param {string} originalText The block's text, as returned by `getBlockText()` when captured.
+ * @return {boolean} True if the block is missing or its text changed, false otherwise.
+ */
+export function isBlockStale(
+	clientId: string,
+	originalText: string
+): boolean {
+	// eslint-disable-next-line dot-notation -- getBlock from store index signature
+	const block = select( blockEditorStore )[ 'getBlock' ]( clientId );
+
+	return (
+		! block || getBlockText( block as BlockWithContent ) !== originalText
+	);
+}
+
+/**
  * Returns the attribute that stores a block's primary editable text.
  * Most text blocks use `content`; Pullquote uses `value`; and Image uses `alt`.
  *

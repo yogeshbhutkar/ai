@@ -20,6 +20,7 @@ import {
 } from '../../../utils/notes';
 import {
 	getBlockText,
+	isBlockStale,
 	replaceBlockWithPlaceholder,
 } from '../../../utils/blocks';
 
@@ -34,7 +35,7 @@ const BLOCK_PLACEHOLDER = '[[BLOCK_GOES_HERE]]';
  * @param resolvedNoteIds Set of AI Note IDs that have been resolved (approved).
  * @param noteContentById Map of Note ID → rendered Note content (pending only).
  * @param pendingNotes    All pending Notes for the post (for reply lookup).
- * @return The number of suggestions created, or 0 if the block was skipped.
+ * @return The number of suggestions created, 0 if the block was skipped, or null if the block was removed or edited mid-review.
  */
 export async function reviewSingleBlock(
 	block: Block,
@@ -43,7 +44,7 @@ export async function reviewSingleBlock(
 	resolvedNoteIds: Set< number >,
 	noteContentById: Map< number, string >,
 	pendingNotes: ExistingNote[]
-): Promise< number > {
+): Promise< number | null > {
 	const noteIds = getNoteIds( block.attributes.metadata );
 	const isSingleThread = ! hasNoteIdList( block.attributes.metadata );
 
@@ -65,6 +66,11 @@ export async function reviewSingleBlock(
 
 	if ( blockText.length === 0 ) {
 		return 0;
+	}
+
+	// The block may have been removed or edited while earlier batches ran.
+	if ( isBlockStale( block.clientId, blockText ) ) {
+		return null;
 	}
 
 	// Collect pending Note texts for this block's thread as context.
@@ -98,6 +104,12 @@ export async function reviewSingleBlock(
 		post_id: postId,
 		existing_notes: existingNoteTexts,
 	} );
+
+	// The block may have been removed or edited while its request was in flight.
+	// Check before saving so the Note isn't attached to a block that no longer exists.
+	if ( isBlockStale( block.clientId, blockText ) ) {
+		return null;
+	}
 
 	if ( result?.suggestions && result.suggestions.length > 0 ) {
 		await createNote(
