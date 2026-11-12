@@ -202,32 +202,38 @@ export function useEditorialUpdates(): {
 
 				await Promise.all(
 					batch.map( async ( block ) => {
-						const pendingNoteIds = getRefinableNoteIds( block );
-
 						const blockText = getBlockText( block );
-
-						// Collect notes logic
-						const existingNoteTexts = collectThreadTexts(
-							pendingNoteIds,
-							noteContentById,
-							pendingNotes
-						);
-
-						// Replace the block with the placeholder.
-						const contentWithPlaceholder =
-							replaceBlockWithPlaceholder(
-								content,
-								block.clientId,
-								BLOCK_PLACEHOLDER
-							);
-
-						const refinementContext = buildContextWindow(
-							contentWithPlaceholder,
-							BLOCK_PLACEHOLDER
-						);
 
 						// Execute refinement
 						try {
+							// The block may have been removed or edited while earlier batches ran.
+							if ( isBlockStale( block.clientId, blockText ) ) {
+								staleBlocksCount++;
+								return;
+							}
+
+							const pendingNoteIds = getRefinableNoteIds( block );
+
+							// Collect notes logic
+							const existingNoteTexts = collectThreadTexts(
+								pendingNoteIds,
+								noteContentById,
+								pendingNotes
+							);
+
+							// Replace the block with the placeholder.
+							const contentWithPlaceholder =
+								replaceBlockWithPlaceholder(
+									content,
+									block.clientId,
+									BLOCK_PLACEHOLDER
+								);
+
+							const refinementContext = buildContextWindow(
+								contentWithPlaceholder,
+								BLOCK_PLACEHOLDER
+							);
+
 							const refinedContent = await runAbility< string >(
 								'ai/editorial-updates',
 								{

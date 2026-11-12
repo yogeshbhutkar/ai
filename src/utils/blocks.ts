@@ -234,8 +234,7 @@ export function isBlockStale(
 	clientId: string,
 	originalText: string
 ): boolean {
-	// eslint-disable-next-line dot-notation -- getBlock from store index signature
-	const block = select( blockEditorStore )[ 'getBlock' ]( clientId );
+	const block = select( blockEditorStore ).getBlock( clientId );
 
 	return (
 		! block || getBlockText( block as BlockWithContent ) !== originalText
